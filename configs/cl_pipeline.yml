@@ -1,0 +1,17 @@
+# CL General
+start_task: 0
+total_tasks: 2
+
+# CL Strategy
+pseudo_label: False
+distill_attn: False
+teacher_path: "/workspace/CL_rtdetr/cod/outputs_cl/weights/7010_t0_10e_ap48.61.pth"
+
+# CL Rehearsal
+rehearsal: False
+
+# CL Eval
+fpp: False
+
+# WandB
+wandb_name: "80_full"
