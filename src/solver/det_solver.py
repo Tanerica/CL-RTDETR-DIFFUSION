@@ -2,7 +2,7 @@ from src.misc import dist
 from src.data import get_coco_api_from_dataset
 
 from .solver import BaseSolver
-from .det_engine import train_one_epoch, evaluate
+from .det_engine import train_one_epoch, evaluate, load_model_params
 
 from termcolor import cprint
 
@@ -20,7 +20,8 @@ class DetSolver(BaseSolver):
         data_ratio = self.train_dataloader.dataset.data_ratio
 
         cprint(f"Task {task_idx} training...", "red", "on_yellow")
-
+        if task_idx > 0:
+            self.model = load_model_params(self.model, args.teacher_path)
         for epoch in range(self.last_epoch + 1, args.epochs):
             if dist.is_dist_available_and_initialized():
                 self.train_dataloader.sampler.set_epoch(epoch)

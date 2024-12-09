@@ -15,7 +15,7 @@ import wandb
 from tqdm import tqdm
 
 
-def load_model_params(model: model, ckpt_path: str = None):
+def load_model_params(model: model, ckpt_path: str = None, teacher_mode=False):
     new_model_dict = model.state_dict()
 
     checkpoint = torch.load(ckpt_path)
@@ -31,14 +31,21 @@ def load_model_params(model: model, ckpt_path: str = None):
     new_model_dict.update(pretrained_model_dict)
     model.load_state_dict(new_model_dict)
 
-    print(
+    if teacher_mode:
+        print(
         colored(
             f"Teacher Model loading complete from [{ckpt_path}]", "blue", "on_yellow"
         )
     )
-
-    for _, params in model.named_parameters():
-        params.requires_grad = False
+    else:
+        print(
+        colored(
+            f"Student Model loading complete from [{ckpt_path}]", "blue", "on_yellow"
+        )
+    )
+    if teacher_mode: 
+        for _, params in model.named_parameters():
+            params.requires_grad = False
 
     return model
 
@@ -133,7 +140,7 @@ def train_one_epoch(
 
     if pseudo_label or distill_attn:
         teacher_copy = copy.deepcopy(model)
-        teacher_model = load_model_params(teacher_copy, teacher_path)
+        teacher_model = load_model_params(teacher_copy, teacher_path, teacher_mode=True)
         teacher_model.eval()
 
     tqdm_batch = tqdm(
