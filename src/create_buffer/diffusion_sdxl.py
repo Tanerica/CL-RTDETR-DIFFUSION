@@ -2,15 +2,15 @@ from PIL import Image
 import cv2
 import numpy as np
 import torch
-from torchvision.datasets import CocoDetection
-from torch.utils.data import DataLoader
 import torchvision
 torchvision.disable_beta_transforms_warning()
+from torchvision.datasets import CocoDetection
+from torch.utils.data import DataLoader
 import os
 import inflect
 from collections import Counter
 from tqdm import tqdm
-from diffusers import StableDiffusionControlNetPipeline, ControlNetModel, UniPCMultistepScheduler
+from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL
 class DiffusionSD(CocoDetection):
     def __getitem__(self, index: int):
         id = self.ids[index]
@@ -150,17 +150,28 @@ mscoco_category2name = {
     90: "toothbrush",
 }
 if __name__ == "__main__":
+
+    controlnet_conditioning_scale = 0.8
+
+    controlnet = ControlNetModel.from_pretrained(
+        "diffusers/controlnet-canny-sdxl-1.0",
+        torch_dtype=torch.float16
+    )
+    vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
+    pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+        "SG161222/RealVisXL_V5.0",
+        controlnet=controlnet,
+        vae=vae,
+        safety_checker=None,
+        torch_dtype=torch.float16,
+    ).to('cuda')
     
     buffer_path = "/workspace/CL-RTDETR-DIFFUSION/buffer"
     buffer_ann_file = "/workspace/CL-RTDETR-DIFFUSION/buffer/buffer.json"
     buffer_dataset = DiffusionSD(buffer_path, buffer_ann_file)
     buffer_dataloader = DataLoader(buffer_dataset, batch_size=5, shuffle=False, collate_fn= lambda x: tuple(zip(*x)))
-    controlnet = ControlNetModel.from_pretrained("lllyasviel/sd-controlnet-canny", torch_dtype=torch.float16, use_safetensors=True)
-    pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        "stable-diffusion-v1-5/stable-diffusion-v1-5", controlnet=controlnet, torch_dtype=torch.float16, use_safetensors=True
-    ).to('cuda')
-    pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
-    buffer_diffusion_dir = "/workspace/CL-RTDETR-DIFFUSION/buffer"
+    
+    buffer_diffusion_dir = "/workspace/CL-RTDETR-DIFFUSION/buffer_diffusion"
     os.makedirs(buffer_diffusion_dir, exist_ok=True)
     for images, targets, paths in tqdm(buffer_dataloader, desc="Diffusion generating: "):
         canny_images = create_canny_images(images)

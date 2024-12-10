@@ -111,7 +111,57 @@ def fake_query(outputs, targets, class_ids, topk=30, threshold=0.3):
             )
     return targets
 
+def fake_distill(samples, targets, class_ids):
+    # samples: [B,3,H,W] tensor
+    # targets: list of dicts with keys "labels", "boxes", "area", "iscrowd"
+    # class_ids: classes for current task
 
+    min_current_class = min(class_ids)
+    fake_samples = samples.clone()
+    fake_targets = copy.deepcopy(targets)  # deep copy instead of clone()
+
+    B, C, H, W = samples.shape  # updated shape extraction
+    for idx, (fake_sample, fake_target) in enumerate(zip(fake_samples, fake_targets)):
+        # Identify old_class objects
+        is_old_class = fake_target['labels'] < min_current_class
+        label_old_class = fake_target['labels'][is_old_class]
+        boxes_old_class = fake_target['boxes'][is_old_class]
+
+        # Identify current class objects and zero them out
+        is_current_class = fake_target['labels'] >= min_current_class
+        boxes_current_class = fake_target['boxes'][is_current_class]
+
+        for box in boxes_current_class:
+            cx, cy, bw, bh = box
+
+            # Convert normalized coords to absolute pixel coords
+            x_center = cx * W
+            y_center = cy * H
+            box_width = bw * W
+            box_height = bh * H
+
+            # Calculate bounding box pixel coordinates
+            x1 = int(x_center - box_width / 3)
+            y1 = int(y_center - box_height / 3)
+            x2 = int(x_center + box_width / 3)
+            y2 = int(y_center + box_height / 3)
+
+            # Clamp coordinates
+            x1 = max(0, min(x1, W-1))
+            y1 = max(0, min(y1, H-1))
+            x2 = max(0, min(x2, W-1))
+            y2 = max(0, min(y2, H-1))
+
+            # Set the pixels in the box area to zero
+            fake_sample[:, y1:y2+1, x1:x2+1] = 0
+            fake_samples[idx] = fake_sample
+
+        # Keep only old-class annotations
+        fake_targets[idx]['labels'] = label_old_class
+        fake_targets[idx]['boxes'] = boxes_old_class
+
+    # Return after processing all samples
+    return fake_samples, fake_targets
 def train_one_epoch(
     model: torch.nn.Module,
     criterion: torch.nn.Module,
@@ -155,8 +205,9 @@ def train_one_epoch(
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         if distill_attn:
-            teacher_attn = compute_attn(teacher_model, samples, targets, device)
-            student_attn = compute_attn(model, samples, targets, device)
+            fake_samples, fake_targets = fake_distill(samples, targets, divided_classes[task_idx])
+            teacher_attn = compute_attn(teacher_model, fake_samples, fake_targets, device)
+            student_attn = compute_attn(model, fake_samples, fake_targets, device)
 
             location_loss = torch.nn.functional.mse_loss(student_attn, teacher_attn)
 

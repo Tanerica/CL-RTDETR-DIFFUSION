@@ -430,9 +430,9 @@ class ABR(object):
         # buffer_anns = json.dumps(orig_anns, cls = NpEncoder)
         buffer_anns = json.dumps(self.buffered_anns, cls = NpEncoder)
         all_anns = json.dumps(orig_anns, cls = NpEncoder)
-        with open("/workspace/CL_rtdetr/cod/buffer/buffer.json", "w") as file:
+        with open(os.path.join(self.buffered_images_dir, 'buffer.json'), "w") as file:
             file.write(buffer_anns)
-        with open("/workspace/CL_rtdetr/cod/buffer/all_anns.json", "w") as file:
+        with open(os.path.join(self.buffered_images_dir, 'all_anns.json'), "w") as file:
             file.write(all_anns)
         
     def get_groundtruth(self, img_id):
@@ -460,5 +460,5 @@ class ABR(object):
         plt.imshow(img)
 
 if __name__ == "__main__":
-    buffer = ABR(images_dir="/workspace/coco/train2017", ann_file="/workspace/coco/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL_rtdetr/cod/buffer", data_ratio="4040", buffer_image_rate=0.1)
+    buffer = ABR(images_dir="/workspace/coco40/train2017", ann_file="/workspace/coco40/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL-RTDETR-DIFFUSION/buffer", data_ratio="7010", buffer_image_rate=0.1)
     buffer.save_buffer_image_and_annotations()

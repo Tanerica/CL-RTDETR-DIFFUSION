@@ -16,12 +16,12 @@ train_dataloader:
         - { type: ConvertBox, out_fmt: "cxcywh", normalize: True }
 
     # CL change here
-    data_ratio: "80"
-    task_idx: 0
-    buffer_mode: False
+    data_ratio: "4040"
+    task_idx: 1
+    buffer_mode: True
     buffer_rate: 0.1
-    buffer_img_path: "/workspace/CL_rtdetr/cod/buffer"
-    buffer_ann_file: "/workspace/CL_rtdetr/cod/buffer/all_anns.json"
+    buffer_img_path: "/workspace/CL-RTDETR-DIFFUSION/buffer"
+    buffer_ann_file: "/workspace/CL-RTDETR-DIFFUSION/buffer/all_anns.json"
   shuffle: True
   batch_size: 18 #12
   num_workers: 12
@@ -42,7 +42,7 @@ val_dataloader:
     buffer_mode: False
 
   shuffle: False
-  batch_size: 48
+  batch_size: 64
   num_workers: 12
   collate_fn: default_collate_fn
   drop_last: False

@@ -3,7 +3,6 @@ from src.data import get_coco_api_from_dataset
 
 from .solver import BaseSolver
 from .det_engine import train_one_epoch, evaluate, load_model_params
-
 from termcolor import cprint
 
 class DetSolver(BaseSolver):
