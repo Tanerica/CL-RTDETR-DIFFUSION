@@ -11,6 +11,7 @@ import inflect
 from collections import Counter
 from tqdm import tqdm
 from diffusers import ControlNetModel, StableDiffusionXLControlNetPipeline, AutoencoderKL
+from pycocotools.coco import COCO
 class DiffusionSD(CocoDetection):
     def __getitem__(self, index: int):
         id = self.ids[index]
@@ -49,22 +50,22 @@ def create_canny_images(images):
         image = Image.fromarray(image)
         canny_images.append(image)
     return canny_images
-def create_prompts(targets):
+def create_prompts(targets, captions):
     positive_prompts = []
     p = inflect.engine()
-    for target in targets:
-        prompt = " a realistic, detailed photo of "
+    for target, caption in zip(targets, captions):
+        real_prompt = " photorealistic, detailed, high quality"
         ids = [obj['category_id'] for obj in target]
         names = [mscoco_category2name[id] for id in ids]
         names = Counter(names)
         for name, count in names.items():
             if count > 1 and count < 5:
-                prompt += p.number_to_words(count) + " " + p.plural(name) + ", "
+                caption += p.number_to_words(count) + " (" + p.plural(name) + "), "
             elif count > 5:
-                prompt += p.plural(name) + ", "
+                caption += "(" + p.plural(name) + "), "
             else:
-                prompt += name + ", "
-        positive_prompts.append(prompt)
+                caption += "("+ name + "), "
+        positive_prompts.append(caption + real_prompt)
         negative_prompt = ['(deformed , semi-realistic, cgi, render, sketch, cartoon, drawing, anime:1.4), text, cropped, out of frame, worst quality, low quality, jpeg artifacts, ugly'] * len(positive_prompts)
     return positive_prompts, negative_prompt
 mscoco_category2name = {
@@ -151,15 +152,15 @@ mscoco_category2name = {
 }
 if __name__ == "__main__":
 
-    controlnet_conditioning_scale = 0.8
+    controlnet_conditioning_scale = 0.62
 
     controlnet = ControlNetModel.from_pretrained(
-        "diffusers/controlnet-canny-sdxl-1.0",
+        "xinsir/controlnet-canny-sdxl-1.0",
         torch_dtype=torch.float16
     )
     vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
     pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
-        "SG161222/RealVisXL_V5.0",
+        "stabilityai/stable-diffusion-xl-base-1.0",
         controlnet=controlnet,
         vae=vae,
         safety_checker=None,
@@ -173,11 +174,20 @@ if __name__ == "__main__":
     
     buffer_diffusion_dir = "/workspace/CL-RTDETR-DIFFUSION/buffer_diffusion"
     os.makedirs(buffer_diffusion_dir, exist_ok=True)
+    
+    caption_path = "/workspace/coco/annotations/captions_train2017.json"
+    caption_coco = COCO(caption_path)
     for images, targets, paths in tqdm(buffer_dataloader, desc="Diffusion generating: "):
+        img_ids = [target[0]['image_id'] for target in targets]
+        captions = []
+        for img_id in img_ids:
+            anno_ids = caption_coco.getAnnIds(imgIds=img_id)
+            anno = caption_coco.loadAnns(anno_ids)
+            captions.append(anno[-1]['caption'])
+        positive_prompts, negative_prompts = create_prompts(targets, captions)
         canny_images = create_canny_images(images)
-        positive_prompts, negative_prompts = create_prompts(targets)
         controlnet_outputs = pipe(
-            prompt=positive_prompts,negative_prompt=negative_prompts,num_inference_steps=20,guidance_scale=4,num_images_per_prompt=1, image=canny_images
+            prompt=positive_prompts,negative_prompt=negative_prompts,num_inference_steps=26,guidance_scale=4,num_images_per_prompt=1, image=canny_images, controlnet_conditioning_scale=controlnet_conditioning_scale
         ).images
         outputs = replace_small_objects(images, controlnet_outputs, targets)
         for output, path in zip(outputs, paths):

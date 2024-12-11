@@ -388,35 +388,35 @@ class ABR(object):
         return curr_image, curr_target
     
     def save_buffer_image_and_annotations(self):
-        start_ann_id = len(self.coco.getAnnIds()) + 1
-        start_img_id = len(self.coco.getImgIds()) + 1
+        # start_ann_id = len(self.coco.getAnnIds()) + 1000000
+        # start_img_id = len(self.coco.getImgIds()) + 1000000
         
         for img_id in self.buffered_img_ids:
             img, gts, is_mixup, is_mosaic = self.transform_img_with_ABR(img_id)
-            
-            if is_mixup:
-                self.buffered_boxes = self.buffered_boxes[:3]
-            elif is_mosaic:
-                self.buffered_boxes = self.buffered_boxes[:4]
+            ann_ids = self.coco.getAnnIds(imgIds=img_id)
+            # if is_mixup:
+            #     self.buffered_boxes = self.buffered_boxes[:3]
+            # elif is_mosaic:
+            #     self.buffered_boxes = self.buffered_boxes[:4]
                 
-            buffered_im_name = "image_{}.jpg".format(start_img_id)
+            buffered_im_name = "image_{}.jpg".format(img_id)
             self.buffered_anns["images"].append({
-                "id": start_img_id,
+                "id": img_id,
                 "file_name": buffered_im_name,
                 "height": img.size[1],
                 "width": img.size[0]
             })   
-            if len(gts) < 10 and not is_mixup and not is_mosaic:
+            if len(gts) < 5 and not is_mixup and not is_mosaic:
                 self.buffer_diffusions["images"].append({
-                "id": start_img_id,
+                "id": img_id,
                 "file_name": buffered_im_name,
                 "height": img.size[1],
                 "width": img.size[0]
             })
-            for gt in gts:
+            for ann_id, gt in zip(ann_ids, gts):
                 ann = {}
-                ann["id"] = start_ann_id
-                ann["image_id"] = start_img_id
+                ann["id"] = ann_id
+                ann["image_id"] = img_id
                 ann["category_id"] = gt[4]
                 bbox = gt[:4]; bbox[2] -= bbox[0]; bbox[3] -= bbox[1]
                 ann["bbox"] = list(bbox)
@@ -426,13 +426,12 @@ class ABR(object):
                 ann["segmentation"] = []
                 
                 self.buffered_anns["annotations"].append(ann)
-                if len(gts) < 10:
+                if len(gts) < 5:
                     self.buffer_diffusions["annotations"].append(ann)
-                start_ann_id += 1
 
             # save the box image
             img.save(os.path.join(self.buffered_images_dir, buffered_im_name))
-            start_img_id += 1
+            # start_img_id += 1
         
         orig_anns = json.load(open(self.ann_file))
         orig_anns["images"].extend(self.buffered_anns["images"])
