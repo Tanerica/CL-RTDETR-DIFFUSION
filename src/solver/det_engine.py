@@ -50,8 +50,47 @@ def load_model_params(model: model, ckpt_path: str = None, teacher_mode=False):
     return model
 
 
-def compute_attn(model, samples, targets, device, ex_device=None):
-    with torch.inference_mode():
+# def compute_attn(model, samples, targets, device, ex_device=None):
+#     with torch.inference_mode():
+#         model.to(device)
+
+#         model_encoder_outputs = []
+#         hook = (
+#             model.encoder.encoder[-1]
+#             .layers[-1]
+#             .self_attn.register_forward_hook(
+#                 lambda module, input, output: model_encoder_outputs.append(output)
+#             )
+#         )
+
+#         _ = model(samples, targets)
+#         hook.remove()
+
+#         if ex_device is not None:
+#             model.to(ex_device)
+
+#     return model_encoder_outputs[0][-1]
+def compute_attn(model, samples, targets, device, ex_device=None, mode="teacher"):
+    if mode == "teacher":
+        with torch.no_grad():
+            model.to(device)
+
+            model_encoder_outputs = []
+            hook = (
+                model.encoder.encoder[-1]
+                .layers[-1]
+                .self_attn.register_forward_hook(
+                    lambda module, input, output: model_encoder_outputs.append(output)
+                )
+            )
+
+            _ = model(samples, targets)
+            hook.remove()
+
+            if ex_device is not None:
+                model.to(ex_device)
+
+    elif mode == "student":
         model.to(device)
 
         model_encoder_outputs = []
@@ -66,11 +105,7 @@ def compute_attn(model, samples, targets, device, ex_device=None):
         _ = model(samples, targets)
         hook.remove()
 
-        if ex_device is not None:
-            model.to(ex_device)
-
     return model_encoder_outputs[0][-1]
-
 
 def fake_query(outputs, targets, class_ids, topk=30, threshold=0.3):
     out_logits, out_bbox = outputs["pred_logits"], outputs["pred_boxes"]
@@ -101,14 +136,14 @@ def fake_query(outputs, targets, class_ids, topk=30, threshold=0.3):
         if labels[labels < min_current_classes].size(0) > 0:
             addlabels = labels[labels < min_current_classes]
             addboxes = boxes[labels < min_current_classes]
-            area = addboxes[:, 2] * addboxes[:, 3]
+            # area = addboxes[:, 2] * addboxes[:, 3]
 
             targets[idx]["boxes"] = torch.cat((target["boxes"], addboxes))
             targets[idx]["labels"] = torch.cat((target["labels"], addlabels))
-            targets[idx]["area"] = torch.cat((target["area"], area))
-            targets[idx]["iscrowd"] = torch.cat(
-                (target["iscrowd"], torch.tensor([0], device=torch.device("cuda")))
-            )
+            # targets[idx]["area"] = torch.cat((target["area"], area))
+            # targets[idx]["iscrowd"] = torch.cat(
+            #     (target["iscrowd"], torch.tensor([0], device=torch.device("cuda")))
+            # )
     return targets
 
 def fake_distill(samples, targets, class_ids):
@@ -205,9 +240,9 @@ def train_one_epoch(
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         if distill_attn:
-            fake_samples, fake_targets = fake_distill(samples, targets, divided_classes[task_idx])
-            teacher_attn = compute_attn(teacher_model, fake_samples, fake_targets, device)
-            student_attn = compute_attn(model, fake_samples, fake_targets, device)
+            # fake_samples, fake_targets = fake_distill(samples, targets, divided_classes[task_idx])
+            teacher_attn = compute_attn(teacher_model, samples, targets, device)
+            student_attn = compute_attn(model, samples, targets, device, mode='student')
 
             location_loss = torch.nn.functional.mse_loss(student_attn, teacher_attn)
 
@@ -242,7 +277,7 @@ def train_one_epoch(
             loss = sum(loss_dict.values())
 
             if distill_attn:
-                loss = loss + location_loss * 0.5
+                loss = (loss + location_loss) * 0.5
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()

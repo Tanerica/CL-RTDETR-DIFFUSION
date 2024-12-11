@@ -16,10 +16,10 @@ train_dataloader:
         - { type: ConvertBox, out_fmt: "cxcywh", normalize: True }
 
     # CL change here
-    data_ratio: "4040"
+    data_ratio: "7010"
     task_idx: 1
     buffer_mode: True
-    buffer_rate: 0.1
+    buffer_rate: 0.15
     buffer_img_path: "/workspace/CL-RTDETR-DIFFUSION/buffer"
     buffer_ann_file: "/workspace/CL-RTDETR-DIFFUSION/buffer/all_anns.json"
   shuffle: True
@@ -38,7 +38,7 @@ val_dataloader:
 
     # CL change here
     data_ratio: "80"
-    task_idx: 0
+    task_idx: 1
     buffer_mode: False
 
   shuffle: False

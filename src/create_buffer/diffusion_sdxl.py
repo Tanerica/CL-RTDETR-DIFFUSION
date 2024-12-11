@@ -167,7 +167,7 @@ if __name__ == "__main__":
     ).to('cuda')
     
     buffer_path = "/workspace/CL-RTDETR-DIFFUSION/buffer"
-    buffer_ann_file = "/workspace/CL-RTDETR-DIFFUSION/buffer/buffer.json"
+    buffer_ann_file = "/workspace/CL-RTDETR-DIFFUSION/buffer/buffer_diffusion.json"
     buffer_dataset = DiffusionSD(buffer_path, buffer_ann_file)
     buffer_dataloader = DataLoader(buffer_dataset, batch_size=5, shuffle=False, collate_fn= lambda x: tuple(zip(*x)))
     

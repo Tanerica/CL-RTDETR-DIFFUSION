@@ -100,7 +100,10 @@ class ABR(object):
             "images": [],
             "annotations": []
         }
-    
+        self.buffer_diffusions = {
+            "images": [],
+            "annotations": []
+        }
     def transform_img_with_ABR(self, img_id):
         assert img_id in self.buffered_img_ids
         
@@ -403,7 +406,13 @@ class ABR(object):
                 "height": img.size[1],
                 "width": img.size[0]
             })   
-            
+            if len(gts) < 10 and not is_mixup and not is_mosaic:
+                self.buffer_diffusions["images"].append({
+                "id": start_img_id,
+                "file_name": buffered_im_name,
+                "height": img.size[1],
+                "width": img.size[0]
+            })
             for gt in gts:
                 ann = {}
                 ann["id"] = start_ann_id
@@ -417,6 +426,8 @@ class ABR(object):
                 ann["segmentation"] = []
                 
                 self.buffered_anns["annotations"].append(ann)
+                if len(gts) < 10:
+                    self.buffer_diffusions["annotations"].append(ann)
                 start_ann_id += 1
 
             # save the box image
@@ -429,9 +440,12 @@ class ABR(object):
         
         # buffer_anns = json.dumps(orig_anns, cls = NpEncoder)
         buffer_anns = json.dumps(self.buffered_anns, cls = NpEncoder)
+        buffer_diffusion_anns = json.dumps(self.buffer_diffusions, cls=NpEncoder)
         all_anns = json.dumps(orig_anns, cls = NpEncoder)
         with open(os.path.join(self.buffered_images_dir, 'buffer.json'), "w") as file:
             file.write(buffer_anns)
+        with open(os.path.join(self.buffered_images_dir, 'buffer_diffusion.json'), "w") as file:
+            file.write(buffer_diffusion_anns)
         with open(os.path.join(self.buffered_images_dir, 'all_anns.json'), "w") as file:
             file.write(all_anns)
         
@@ -460,5 +474,5 @@ class ABR(object):
         plt.imshow(img)
 
 if __name__ == "__main__":
-    buffer = ABR(images_dir="/workspace/coco40/train2017", ann_file="/workspace/coco40/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL-RTDETR-DIFFUSION/buffer", data_ratio="7010", buffer_image_rate=0.1)
+    buffer = ABR(images_dir="/workspace/coco/train2017", ann_file="/workspace/coco/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL-RTDETR-DIFFUSION/buffer", data_ratio="7010", buffer_image_rate=0.15)
     buffer.save_buffer_image_and_annotations()

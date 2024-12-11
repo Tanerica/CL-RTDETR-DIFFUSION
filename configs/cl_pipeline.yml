@@ -5,7 +5,7 @@ total_tasks: 2
 # CL Strategy
 pseudo_label: True
 distill_attn: True
-teacher_path: "/workspace/CL-RTDETR-DIFFUSION/outputs/weights/4040_t0_1e_ap0.35.pth"
+teacher_path: "/workspace/outputs/weights/7010_t0_35e_ap45.75.pth"
 
 # CL Rehearsal
 rehearsal: False
@@ -14,4 +14,4 @@ rehearsal: False
 fpp: False
 
 # WandB
-wandb_name: "test4040"
+wandb_name: "7010_task1_fake_distill_20e"
