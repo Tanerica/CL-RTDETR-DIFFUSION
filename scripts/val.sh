@@ -1,3 +1,3 @@
 python scripts/train.py \
- -r "/workspace/CL-RTDETR-DIFFUSION/outputs/weights/4040_t0_1e_ap0.35.pth" \
+ -r "/workspace/7010_t0_35e_ap45.75.pth" \
  --test-only

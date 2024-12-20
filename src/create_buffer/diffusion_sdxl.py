@@ -170,9 +170,9 @@ if __name__ == "__main__":
     buffer_path = "/workspace/CL-RTDETR-DIFFUSION/buffer"
     buffer_ann_file = "/workspace/CL-RTDETR-DIFFUSION/buffer/buffer_diffusion.json"
     buffer_dataset = DiffusionSD(buffer_path, buffer_ann_file)
-    buffer_dataloader = DataLoader(buffer_dataset, batch_size=5, shuffle=False, collate_fn= lambda x: tuple(zip(*x)))
+    buffer_dataloader = DataLoader(buffer_dataset, batch_size=24, shuffle=False, collate_fn= lambda x: tuple(zip(*x)))
     
-    buffer_diffusion_dir = "/workspace/CL-RTDETR-DIFFUSION/buffer_diffusion"
+    buffer_diffusion_dir = "/workspace/CL-RTDETR-DIFFUSION/buffer"
     os.makedirs(buffer_diffusion_dir, exist_ok=True)
     
     caption_path = "/workspace/coco/annotations/captions_train2017.json"
@@ -187,7 +187,7 @@ if __name__ == "__main__":
         positive_prompts, negative_prompts = create_prompts(targets, captions)
         canny_images = create_canny_images(images)
         controlnet_outputs = pipe(
-            prompt=positive_prompts,negative_prompt=negative_prompts,num_inference_steps=26,guidance_scale=4,num_images_per_prompt=1, image=canny_images, controlnet_conditioning_scale=controlnet_conditioning_scale
+            prompt=positive_prompts,negative_prompt=negative_prompts,num_inference_steps=12,guidance_scale=4,num_images_per_prompt=1, image=canny_images, controlnet_conditioning_scale=controlnet_conditioning_scale
         ).images
         outputs = replace_small_objects(images, controlnet_outputs, targets)
         for output, path in zip(outputs, paths):

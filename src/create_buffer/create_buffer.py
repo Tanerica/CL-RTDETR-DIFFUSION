@@ -406,7 +406,7 @@ class ABR(object):
                 "height": img.size[1],
                 "width": img.size[0]
             })   
-            if len(gts) < 5 and not is_mixup and not is_mosaic:
+            if len(gts) < 4 and not is_mixup and not is_mosaic:
                 self.buffer_diffusions["images"].append({
                 "id": img_id,
                 "file_name": buffered_im_name,
@@ -426,7 +426,7 @@ class ABR(object):
                 ann["segmentation"] = []
                 
                 self.buffered_anns["annotations"].append(ann)
-                if len(gts) < 5:
+                if len(gts) < 4:
                     self.buffer_diffusions["annotations"].append(ann)
 
             # save the box image
@@ -473,5 +473,5 @@ class ABR(object):
         plt.imshow(img)
 
 if __name__ == "__main__":
-    buffer = ABR(images_dir="/workspace/coco/train2017", ann_file="/workspace/coco/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL-RTDETR-DIFFUSION/buffer", data_ratio="7010", buffer_image_rate=0.15)
+    buffer = ABR(images_dir="/workspace/coco/train2017", ann_file="/workspace/coco/annotations/instances_train2017.json", buffered_images_dir="/workspace/CL-RTDETR-DIFFUSION/buffer4040", data_ratio="4040", buffer_image_rate=0.15)
     buffer.save_buffer_image_and_annotations()
