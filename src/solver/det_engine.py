@@ -277,7 +277,7 @@ def train_one_epoch(
             loss = sum(loss_dict.values())
 
             if distill_attn:
-                loss = loss * 0.25 + location_loss * 0.75
+                loss = loss * 1 + location_loss * 2
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
