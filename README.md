@@ -4,8 +4,6 @@
 
 **❓ Key question:** how do we generate new replay data while still keeping the ground-truth class and bounding box valid? — **ControlNet**, conditioned on a Canny edge map of the original image, keeps geometry fixed while redrawing everything else, so the original boxes still apply to the generated image.
 
-This README is a short overview. For the full technical report — code walkthrough, all ablations, thesis translation, and known issues — see [`report.md`](report.md).
-
 ## 🏆 Results
 
 COCO 2017, two tasks, RT-DETR R50-vd @ 640×640. Baselines from their respective papers, best per column in **bold**.
@@ -29,7 +27,7 @@ COCO 2017, two tasks, RT-DETR R50-vd @ 640×640. Baselines from their respective
 | VLM-PL | **39.8** | **58.2** | **43.2** | 22.4 | **43.5** | 51.6 |
 | **Ours** | 39.2 | 53.6 | 42.8 | **24.8** | 42.8 | **54.8** |
 
-Pseudo-labels are the dominant factor behind these gains, worth ~24 AP on 40–40. Full baseline set (LWF, RILOD, SID, ABR), ablations, and what these numbers can/cannot support: [`report.md`](report.md).
+Pseudo-labels are the dominant factor behind these gains, worth ~24 AP on 40–40.
 
 ## 🔬 Method
 
@@ -78,4 +76,4 @@ python scripts/train.py -c <cfg> -r ckpt.pth --test-only    # evaluate only
 
 Before running: replace the hardcoded `/workspace/...` paths in `configs/` with your own, and set `export WANDB_MODE=offline` if you don't have a W&B account (logging is otherwise mandatory).
 
-There is no loop over tasks — one process trains one task, and `task_idx` must be set consistently across `configs/rtdetr/include/dataloader.yml`, `configs/rtdetr/include/rtdetr_r50vd.yml`, and `configs/cl_pipeline.yml`. For task 1, also point `teacher_path` at the task-0 checkpoint and enable `pseudo_label`/`distill_attn`. Details, the diffusion-buffer generation pipeline, and repo layout: see [`report.md`](report.md).
+There is no loop over tasks — one process trains one task, and `task_idx` must be set consistently across `configs/rtdetr/include/dataloader.yml`, `configs/rtdetr/include/rtdetr_r50vd.yml`, and `configs/cl_pipeline.yml`. For task 1, also point `teacher_path` at the task-0 checkpoint and enable `pseudo_label`/`distill_attn`.
